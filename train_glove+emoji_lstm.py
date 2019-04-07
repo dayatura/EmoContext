@@ -19,11 +19,11 @@ from sklearn.metrics import f1_score
 
 ############################# config #################################
 
-trainDataPath = "data/train.txt"
-testDataPath = "data/test.txt"
+trainDataPath = "data/train.npz"
+testDataPath = "data/test.npz"
 pre_trainedPath = "pre_trained"
 embedingName = "glove+emoji.txt"
-modelPath = "model/glove_lstm.h5"
+modelPath = "model/glove+emo2vec_lstm.h5"
 
 NUM_CLASSES = 4                 
 MAX_NB_WORDS = 20000                
@@ -33,51 +33,13 @@ BATCH_SIZE = 200
 LSTM_DIM = 128                    
 DROPOUT = 0.2        
 LEARNING_RATE = 0.003
-NUM_EPOCHS = 1
+NUM_EPOCHS = 10
 
 
 label2emotion = {0:"others", 1:"happy", 2: "sad", 3:"angry"}
 emotion2label = {"others":0, "happy":1, "sad":2, "angry":3}
 
 ############################ helpen function ###########################
-
-def preprocessData(dataFilePath, mode):
-    indices = []
-    conversations = []
-    labels = []
-    with io.open(dataFilePath, encoding="utf8") as finput:
-        finput.readline()
-        for line in finput:
-            repeatedChars = ['.', '?', '!', ',']
-            for c in repeatedChars:
-                lineSplit = line.split(c)
-                while True:
-                    try:
-                        lineSplit.remove('')
-                    except:
-                        break
-                cSpace = ' ' + c + ' '    
-                line = cSpace.join(lineSplit)
-            
-            line = line.strip().split('\t')
-            if mode == "train":
-                # Train data contains id, 3 turns and label
-                label = emotion2label[line[4]]
-                labels.append(label)
-            
-            conv = ' <eos> '.join(line[1:4])
-            
-            # Remove any duplicate spaces
-            duplicateSpacePattern = re.compile(r'\ +')
-            conv = re.sub(duplicateSpacePattern, ' ', conv)
-            
-            indices.append(int(line[0]))
-            conversations.append(conv.lower())
-    
-    if mode == "train":
-        return indices, conversations, labels
-    else:
-        return indices, conversations
 
 def getEmbeddingMatrix(wordIndex):
     embeddingsIndex = {}
@@ -125,10 +87,18 @@ def buildModel(embeddingMatrix):
 ####################### main programm #########################
 
 print("Processing training data...")
-trainIndices, trainTexts, labels = preprocessData(trainDataPath, mode="train")
+# trainIndices, trainTexts, labels = preprocessData(trainDataPath, mode="train")
+train = np.load(trainDataPath)
+trainIndices = train['indices']
+trainTexts = train['conversations']
+labels = train['labels']
 
 print("Processing test data...")
-testIndices, testTexts , testLabels = preprocessData(testDataPath, mode="train")
+# testIndices, testTexts , testLabels = preprocessData(testDataPath, mode="train")
+test = np.load(testDataPath)
+testIndices = test['indices']
+testTexts = test['conversations']
+testLabels = test['labels']
 
 print("Extracting tokens...")
 tokenizer = Tokenizer(num_words=MAX_NB_WORDS)
